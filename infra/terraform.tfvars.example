@@ -1,0 +1,15 @@
+youtube_oauth_json = <<EOF
+{
+  "web": {
+    "client_id": "YOUR ID",
+    "client_secret": "YOUR SECRET",
+    "redirect_uris": [],
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://accounts.google.com/o/oauth2/token"
+  }
+}
+EOF
+
+image_url = "DOCKERIMAGEURL"
+project_id = "isleofmanbywebcam"
+
