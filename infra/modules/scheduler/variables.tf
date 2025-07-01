@@ -3,7 +3,8 @@ variable "job_name" {
 }
 
 variable "schedule" {
-  type = string
+  type    = string
+  default = "* * * * *" # every minute
 }
 
 variable "cloud_run_uri" {
