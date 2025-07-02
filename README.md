@@ -67,10 +67,28 @@ Use terraform.tfvars.example to create your own terraform.tfvars.
 
 ### CI/CD
 
-| Event                | GitHub Workflow                                                   |
-|----------------------|-------------------------------------------------------------------|
-| Push to **image-processor/**       | Builds & pushes Docker image to GCR                 |
-| Push to **infra/**                 | Plans & optionally applies Terraform                |
+#### Image Processor Workflow:
+1. Push to `image-processor/` directory
+2. GitHub Actions workflow runs:
+   - Builds the Docker image
+   - Pushes it to **Google Artifact Registry**
+   - Triggers Cloud Run update with the new image
+
+#### Infrastructure Workflow:
+1. Push to `infra/` directory
+2. GitHub Actions workflow runs:
+   - Runs `terraform plan` to preview changes
+   - Optionally runs `terraform apply` to apply changes
+   - Manages:
+     - Cloud Run service
+     - Cloud Scheduler
+     - Cloud Storage
+     - Service accounts and secrets
+
+
+Secrets Required in GitHub:
+
+GCP_SA_KEY → your GCP service account credentials JSON
 
 Work still to be done
 
