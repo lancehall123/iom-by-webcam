@@ -7,8 +7,18 @@ This project powers the [Isle of Man by Webcam](https://www.youtube.com/@IsleOfM
 It is the result of migrating from a previously physical, on-premises setup to a modern, cloud-based, fully automated infrastructure.
 
 ---
+## Current On-Prem Tech Stack
+| Component            | Description                                                       |
+|----------------------|-------------------------------------------------------------------|
+| **Powershell**                | Image processing and download automation.                |
+| **Windows Task Scheduler**    | Used to schedule the above powershell script to run.     |
+| **Windows Server**            | Windows server operating system with Task Scheduler.     |
+| **On Prem Hardware**          | Local infrastructure.                                    |
+| **On Prem Hard Drive**        | Local External Hard Drive.                               |
 
-## Tech Stack
+---
+
+## New Tech Stack
 
 | Component            | Description                                                       |
 |----------------------|-------------------------------------------------------------------|
