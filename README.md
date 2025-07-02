@@ -38,6 +38,16 @@ flowchart TD
 git clone https://github.com/your-username/iom-by-webcam.git
 cd iom-by-webcam
 ```
+### 2. Develop Locally
+```bash
+cd image-processor
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python fetch_and_process.py
+```
+Set the IMAGE_URL environment variable in .env or your shell.
+
 Work still to be done
 
 Schedule the video creation and upload to youtube.
