@@ -1,5 +1,7 @@
 # iom-by-webcam
 
+# WIP
+
 This project powers the [Isle of Man by Webcam](https://www.youtube.com/@IsleOfManByWebcam/videos) YouTube channel. It automates image capture from a public webcam, processes the images into timestamped collections, and can optionally upload or assemble them into videos.
 
 It is the result of migrating from a previously physical, on-premises setup to a modern, cloud-based, fully automated infrastructure.
@@ -63,6 +65,12 @@ terraform apply -var-file="terraform.tfvars"
 ```
 Use terraform.tfvars.example to create your own terraform.tfvars.
 
+### CI/CD
+
+| Event                | GitHub Workflow                                                   |
+|----------------------|-------------------------------------------------------------------|
+| Push to **image-processor/**       | Builds & pushes Docker image to GCR                 |
+| Push to **infra/**                 | Plans & optionally applies Terraform                |
 
 Work still to be done
 
