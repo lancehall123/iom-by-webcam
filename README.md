@@ -84,7 +84,18 @@ Use terraform.tfvars.example to create your own terraform.tfvars.
      - Cloud Scheduler
      - Cloud Storage
      - Service accounts and secrets
+---
 
+### GitHub Secrets Required
+
+| Secret Name    | Description                                                  |
+|----------------|--------------------------------------------------------------|
+| `GCP_SA_KEY`   | GCP service account JSON credentials (base64-encoded or raw) |
+| `PROJECT_ID`   | Your Google Cloud project ID (e.g., `isleofmanbywebcam`)     |
+| `REGION`       | Deployment region (e.g., `europe-west1`)                     |
+| `BUCKET_NAME`  | Name of the GCS bucket used to store images                  |
+
+---
 
 Secrets Required in GitHub:
 
