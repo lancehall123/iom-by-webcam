@@ -12,13 +12,13 @@ It is the result of migrating from a previously physical, on-premises setup to a
 
 | Component            | Description                                                       |
 |----------------------|-------------------------------------------------------------------|
-| **Python**           | Image processing and download automation (`fetch_and_process.py`) |
-| **Docker**           | Containerized the processor to run anywhere                       |
-| **Terraform**        | Infrastructure as Code (GCP provisioning)                         |
-| **Cloud Run**        | Serverless hosting of the image processor                         |
-| **Cloud Scheduler**  | Triggers the image processor on a fixed schedule                  |
-| **Cloud Storage**    | Stores downloaded webcam images securely                          |
-| **GitHub Actions**   | CI/CD pipeline for Docker image and infrastructure deployment     |
+| **Python**           | Image processing and download automation (`fetch_and_process.py`). |
+| **Docker**           | Containerized the processor to run anywhere.                       |
+| **Terraform**        | Infrastructure as Code (GCP provisioning).                         |
+| **Cloud Run**        | Serverless hosting of the image processor.                         |
+| **Cloud Scheduler**  | Triggers the image processor on a fixed schedule.                  |
+| **Cloud Storage**    | Stores downloaded webcam images securely.                          |
+| **GitHub Actions**   | CI/CD pipeline for Docker image and infrastructure deployment.     |
 
 ---
 Diagram created by mermaid (Diagrams via code).
