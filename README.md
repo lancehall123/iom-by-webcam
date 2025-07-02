@@ -28,6 +28,16 @@ flowchart TD
 
     scheduler --> run --> storage
 ```
+---
+
+## Usage
+
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/your-username/iom-by-webcam.git
+cd iom-by-webcam
+```
 Work still to be done
 
-Schedule the video creation and upload to youtube
+Schedule the video creation and upload to youtube.
