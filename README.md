@@ -48,6 +48,13 @@ python fetch_and_process.py
 ```
 Set the IMAGE_URL environment variable in .env or your shell.
 
+### 3. Build and Test Docker
+```bash
+docker build -t image-processor .
+docker run --rm -e IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg" -v "$(pwd)/output:/data/images" image-processor
+
+```
+
 Work still to be done
 
 Schedule the video creation and upload to youtube.
