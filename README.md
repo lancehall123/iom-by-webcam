@@ -54,6 +54,15 @@ docker build -t image-processor .
 docker run --rm -e IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg" -v "$(pwd)/output:/data/images" image-processor
 
 ```
+### 4. Deploy to GCP with Terraform
+```bash
+cd infra
+terraform init
+terraform apply -var-file="terraform.tfvars"
+
+```
+Use terraform.tfvars.example to create your own terraform.tfvars.
+
 
 Work still to be done
 
