@@ -47,7 +47,7 @@ jobs:
           set -e
           cd infra
           IMPORT_FAILED=0
-
+          terraform init \
           echo "Importing module.cloud_run.google_cloud_run_v2_service.service..."
           terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
           (gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null && \
