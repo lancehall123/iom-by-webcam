@@ -1,15 +1,15 @@
 import os
-import threading
 import time
-import requests
+import threading
 from datetime import datetime
-from pathlib import Path
-from flask import Flask, send_from_directory, render_template_string
+import requests
+from flask import Flask, render_template_string
 from google.cloud import storage
 
+# Environment variables
 IMAGE_URL = os.environ.get("IMAGE_URL", "https://images.gov.im/webcams/bungalow1.jpg")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
-BASE_DIR = Path("/data/images")
+REFRESH_INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -17,76 +17,46 @@ HEADERS = {
     "Accept": "image/jpeg,image/png,image/*;q=0.8"
 }
 
+# Google Cloud Storage client
+storage_client = storage.Client()
+bucket = storage_client.bucket(BUCKET_NAME)
+
+# Flask app
 app = Flask(__name__)
 
-def create_folder(path):
-    path.mkdir(parents=True, exist_ok=True)
+def upload_image_to_gcs(image_data, filename):
+    blob = bucket.blob(f"{datetime.utcnow().strftime('%Y%m%d')}/{filename}")
+    blob.upload_from_string(image_data, content_type='image/jpeg')
+    print(f"Uploaded {filename} to GCS bucket {BUCKET_NAME}")
 
-def remove_empty_jpgs(path):
-    for f in path.glob("*.jpg"):
-        if f.stat().st_size == 0:
-            f.unlink()
-
-def upload_to_gcs(local_path: Path, remote_path: str):
-    try:
-        client = storage.Client()
-        bucket = client.bucket(BUCKET_NAME)
-        blob = bucket.blob(remote_path)
-        blob.upload_from_filename(str(local_path))
-        print(f"Uploaded to GCS: {remote_path}")
-    except Exception as e:
-        print(f"GCS upload failed: {e}")
-
-def download_image(dest_folder):
-    now = datetime.utcnow()
-    filename = now.strftime("%m%d%Y%H%M%S") + ".jpg"
-    dest_file = dest_folder / filename
-    try:
-        response = requests.get(IMAGE_URL, headers=HEADERS)
-        response.raise_for_status()
-        dest_file.write_bytes(response.content)
-        print(f"Downloaded: {dest_file}")
-
-        if BUCKET_NAME:
-            gcs_path = f"{now.strftime('%m%d%Y')}/{filename}"
-            upload_to_gcs(dest_file, gcs_path)
-
-    except Exception as e:
-        print(f"Download error: {e}")
-
-def rename_images_sequentially(folder):
-    images = sorted(folder.glob("*.jpg"), key=lambda f: f.stat().st_mtime)
-    for idx, img in enumerate(images):
-        new_name = folder / f"{idx:04d}.jpg"
-        if img.name != new_name.name:
-            img.rename(new_name)
-
-def process_images():
-    today = datetime.utcnow().strftime("%m%d%Y")
-    today_path = BASE_DIR / today
-    create_folder(today_path)
-    remove_empty_jpgs(today_path)
-    download_image(today_path)
-    rename_images_sequentially(today_path)
-
-def run_downloader_loop():
+def fetch_and_upload():
     while True:
-        process_images()
-        time.sleep(60)
+        try:
+            timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+            filename = f"{timestamp}.jpg"
+
+            response = requests.get(IMAGE_URL, headers=HEADERS)
+            response.raise_for_status()
+
+            if response.content:
+                upload_image_to_gcs(response.content, filename)
+            else:
+                print("Empty image data received.")
+
+        except Exception as e:
+            print(f"Error downloading or uploading image: {e}")
+
+        time.sleep(REFRESH_INTERVAL)
 
 @app.route("/")
 def index():
-    today = datetime.utcnow().strftime("%m%d%Y")
-    today_path = BASE_DIR / today
-    if not today_path.exists():
-        return "No images yet."
-    images = sorted(today_path.glob("*.jpg"), key=os.path.getmtime)[-5:]
-    image_tags = "\n".join([f"<img src='/images/{today}/{img.name}' width='320' />" for img in images])
-    return render_template_string(f"<html><body><h1>Latest Images</h1>{image_tags}</body></html>")
-
-@app.route("/images/<date>/<filename>")
-def serve_image(date, filename):
-    return send_from_directory(BASE_DIR / date, filename)
+    blobs = bucket.list_blobs(prefix=datetime.utcnow().strftime('%Y%m%d'))
+    image_urls = [
+        f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
+        for blob in sorted(blobs, key=lambda b: b.updated, reverse=True)[:5]
+    ]
+    img_tags = "\n".join([f"<img src='{url}' width='320' />" for url in image_urls])
+    return render_template_string(f"<html><body><h1>Latest Images</h1>{img_tags}</body></html>")
 
 # Start background thread
-threading.Thread(target=run_downloader_loop, daemon=True).start()
+threading.Thread(target=fetch_and_upload, daemon=True).start()
