@@ -1,5 +1,5 @@
 resource "google_cloud_run_v2_service" "service" {
-  name     = "image-processor"
+  name     = "image_processor"
   location = var.region
 
   template {
