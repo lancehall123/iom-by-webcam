@@ -28,6 +28,15 @@ jobs:
       - name: Terraform Init
         run: terraform -chdir=infra init
 
+      - name: Terraform Plan
+        run: |
+          terraform -chdir=infra plan \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
+            -var="youtube_oauth_json=DUMMYSTRING" \
+            -var="image_url=${{ secrets.IMAGE_URL }}"
+
       - name: Import existing resources if they exist
         run: |
           cd infra
@@ -35,10 +44,7 @@ jobs:
           REGION="${{ secrets.REGION }}"
           BUCKET="${{ secrets.BUCKET_NAME }}"
 
-          # Check if Terraform state file exists
-          if [ ! -f terraform.tfstate ]; then
-            touch terraform.tfstate
-          fi
+          terraform init -input=false
 
           # Import Cloud Run Service
           terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
@@ -64,15 +70,6 @@ jobs:
           terraform state list | grep -q google_service_account.github_actions || \
           (gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null && \
           terraform import google_service_account.github_actions "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com")
-
-      - name: Terraform Plan
-        run: |
-          terraform -chdir=infra plan \
-            -var="project_id=${{ secrets.PROJECT_ID }}" \
-            -var="region=${{ secrets.REGION }}" \
-            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
-            -var="youtube_oauth_json=DUMMYSTRING" \
-            -var="image_url=${{ secrets.IMAGE_URL }}"
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
