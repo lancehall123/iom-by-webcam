@@ -5,10 +5,12 @@ import requests
 from datetime import datetime
 from pathlib import Path
 from flask import Flask, send_from_directory, render_template_string
-
+from google.cloud import storage
 
 IMAGE_URL = os.environ.get("IMAGE_URL", "https://images.gov.im/webcams/bungalow1.jpg")
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 BASE_DIR = Path("/data/images")
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
     "Referer": "https://images.gov.im/webcams/",
@@ -25,6 +27,16 @@ def remove_empty_jpgs(path):
         if f.stat().st_size == 0:
             f.unlink()
 
+def upload_to_gcs(local_path: Path, remote_path: str):
+    try:
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(remote_path)
+        blob.upload_from_filename(str(local_path))
+        print(f"Uploaded to GCS: {remote_path}")
+    except Exception as e:
+        print(f"GCS upload failed: {e}")
+
 def download_image(dest_folder):
     now = datetime.utcnow()
     filename = now.strftime("%m%d%Y%H%M%S") + ".jpg"
@@ -34,6 +46,11 @@ def download_image(dest_folder):
         response.raise_for_status()
         dest_file.write_bytes(response.content)
         print(f"Downloaded: {dest_file}")
+
+        if BUCKET_NAME:
+            gcs_path = f"{now.strftime('%m%d%Y')}/{filename}"
+            upload_to_gcs(dest_file, gcs_path)
+
     except Exception as e:
         print(f"Download error: {e}")
 
@@ -71,4 +88,5 @@ def index():
 def serve_image(date, filename):
     return send_from_directory(BASE_DIR / date, filename)
 
+# Start background thread
 threading.Thread(target=run_downloader_loop, daemon=True).start()
