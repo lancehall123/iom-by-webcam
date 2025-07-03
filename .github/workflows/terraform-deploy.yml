@@ -35,6 +35,11 @@ jobs:
           REGION="${{ secrets.REGION }}"
           BUCKET="${{ secrets.BUCKET_NAME }}"
 
+          # Check if Terraform state file exists
+          if [ ! -f terraform.tfstate ]; then
+            touch terraform.tfstate
+          fi
+
           # Import Cloud Run Service
           terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
           (gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null && \
