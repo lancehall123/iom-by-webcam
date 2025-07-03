@@ -39,6 +39,7 @@ jobs:
 
       - name: Import existing resources if they exist
         run: |
+            cd infra
             PROJECT_ID="${{ secrets.PROJECT_ID }}"
             REGION="${{ secrets.REGION }}"
             if gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null; then
