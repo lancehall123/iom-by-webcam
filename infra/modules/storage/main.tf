@@ -6,9 +6,6 @@ resource "google_storage_bucket" "media" {
 
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [
-      labels,
-      uniform_bucket_level_access,
-    ]
+    ignore_changes  = [labels]
   }
 }
