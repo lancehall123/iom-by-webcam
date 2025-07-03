@@ -38,3 +38,8 @@ module "scheduler" {
   schedule      = "* * * * *" # every minute
   cloud_run_uri = module.cloud_run.url
 }
+resource "google_project_service" "cloudresourcemanager" {
+  project = var.project_id
+  service = "cloudresourcemanager.googleapis.com"
+}
+
