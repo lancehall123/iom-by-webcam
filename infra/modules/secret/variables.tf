@@ -5,3 +5,7 @@ variable "secret_id" {
 variable "secret_value" {
   type = string
 }
+variable "region" {
+  type    = string
+  default = "europe-west1"
+}

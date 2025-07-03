@@ -1,8 +1,13 @@
 resource "google_service_account" "github_actions" {
   account_id   = "github-actions"
   display_name = "GitHub Actions Deployer"
-  project      = var.project_id
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [display_name]
+  }
 }
+
 
 resource "google_project_iam_member" "artifact_writer" {
   role   = "roles/artifactregistry.writer"

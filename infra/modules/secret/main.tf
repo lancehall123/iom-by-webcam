@@ -4,11 +4,17 @@ resource "google_secret_manager_secret" "oauth" {
   replication {
     user_managed {
       replicas {
-        location = "europe-west1"
+        location = var.region
       }
     }
   }
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [secret_id]
+  }
 }
+
 
 
 resource "google_secret_manager_secret_version" "oauth_version" {
