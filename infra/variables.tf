@@ -16,6 +16,7 @@ variable "bucket_name" {
 variable "youtube_oauth_json" {
   type = string
   description = "Contents of YouTube OAuth JSON credentials"
+  default = "dummy"
 }
 
 variable "image_url" {
