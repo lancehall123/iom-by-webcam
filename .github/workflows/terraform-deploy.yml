@@ -45,7 +45,7 @@ jobs:
       - name: Import existing resources if they exist
         run: |
           IMPORT_FAILED=0
-          terraform -chdir=infra
+          terraform -chdir=infra init
           cd infra
           echo "Importing module.cloud_run.google_cloud_run_v2_service.service..."
           terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
