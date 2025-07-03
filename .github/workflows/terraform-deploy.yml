@@ -37,6 +37,17 @@ jobs:
             terraform import module.cloud_run.google_cloud_run_v2_service.service projects/$PROJECT_ID/locations/$REGION/services/image-processor
             fi
 
+      
+
+      - name: Terraform Plan
+        run: |
+          terraform -chdir=infra plan \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
+            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
+            -var="image_url=${{ secrets.IMAGE_URL }}"
+            
       - name: Import existing resources if they exist
         run: |
             PROJECT_ID="${{ secrets.PROJECT_ID }}"
@@ -80,16 +91,7 @@ jobs:
     
             if gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null; then
             terraform import google_service_account.github_actions projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com
-            fi
-
-      - name: Terraform Plan
-        run: |
-          terraform -chdir=infra plan \
-            -var="project_id=${{ secrets.PROJECT_ID }}" \
-            -var="region=${{ secrets.REGION }}" \
-            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
-            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
-            -var="image_url=${{ secrets.IMAGE_URL }}"
+            fi      
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
