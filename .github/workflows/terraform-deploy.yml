@@ -73,10 +73,6 @@ jobs:
           (gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null && \
           terraform import google_service_account.github_actions "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com") || IMPORT_FAILED=1
 
-          echo "Importing google_service_account_key.github_key..."
-          terraform state list | grep -q google_service_account_key.github_key || \
-          terraform import google_service_account_key.github_key "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com/keys/latest" || IMPORT_FAILED=1
-
           echo "Finished importing. IMPORT_FAILED=$IMPORT_FAILED"
           echo "IMPORT_FAILED=$IMPORT_FAILED" >> $GITHUB_ENV
 
