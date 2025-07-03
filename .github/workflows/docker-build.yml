@@ -26,11 +26,30 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: Configure Docker for Artifact Registry.
+      - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ secrets.REGION }}-docker.pkg.dev
 
-      - name: Build and Push Docker image
+      - name: Build and Push Docker Image
         run: |
           IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/webcam-repo/image_processor"
-          docker build -t $IMAGE ./image_processor
-          docker push $IMAGE
+          docker build -t "$IMAGE" ./image_processor
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run (Public Access)
+        run: |
+          IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/webcam-repo/image_processor"
+          gcloud run deploy image-processor \
+            --image "$IMAGE" \
+            --platform managed \
+            --region "${{ secrets.REGION }}" \
+            --project "${{ secrets.PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Print Cloud Run Service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe image-processor \
+            --region "${{ secrets.REGION }}" \
+            --project "${{ secrets.PROJECT_ID }}" \
+            --format="value(status.url)")
+          echo "Cloud Run Service deployed at: $SERVICE_URL"
