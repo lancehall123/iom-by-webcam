@@ -50,38 +50,34 @@ jobs:
         run: |
           set -e
           cd infra
-          echo "Starting import operations..."
+          echo "Starting import phase..."
+          IMPORT_FAILED=0
 
-          # Cloud Run
-          echo "Importing Cloud Run service..."
+          # Import Cloud Run Service
           terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
           (gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null && \
           terraform import module.cloud_run.google_cloud_run_v2_service.service "projects/$PROJECT_ID/locations/$REGION/services/image-processor") || \
           { echo "Failed to import Cloud Run"; IMPORT_FAILED=1; }
 
-          # Cloud Scheduler
-          echo "Importing Cloud Scheduler job..."
+          # Import Cloud Scheduler Job
           terraform state list | grep -q module.scheduler.google_cloud_scheduler_job.job || \
           (gcloud scheduler jobs describe fetch-and-process-images --location="$REGION" --project="$PROJECT_ID" &>/dev/null && \
           terraform import module.scheduler.google_cloud_scheduler_job.job "projects/$PROJECT_ID/locations/$REGION/jobs/fetch-and-process-images") || \
-          { echo "Failed to import Cloud Scheduler job"; IMPORT_FAILED=1; }
+          { echo "Failed to import Cloud Scheduler"; IMPORT_FAILED=1; }
 
-          # GCS Bucket
-          echo "Importing GCS bucket..."
+          # Import GCS Bucket
           terraform state list | grep -q module.gcs.google_storage_bucket.media || \
           (gsutil ls -p "$PROJECT_ID" gs://$BUCKET &>/dev/null && \
           terraform import module.gcs.google_storage_bucket.media "$BUCKET") || \
           { echo "Failed to import GCS bucket"; IMPORT_FAILED=1; }
 
-          # Secret Manager
-          echo "Importing Secret Manager secret..."
+          # Import Secret Manager Secret
           terraform state list | grep -q module.secret.google_secret_manager_secret.oauth || \
           (gcloud secrets describe youtube_oauth --project="$PROJECT_ID" &>/dev/null && \
           terraform import module.secret.google_secret_manager_secret.oauth "projects/$PROJECT_ID/secrets/youtube_oauth") || \
-          { echo "Failed to import Secret Manager secret"; IMPORT_FAILED=1; }
+          { echo "Failed to import Secret Manager"; IMPORT_FAILED=1; }
 
-          # Service Account
-          echo "Importing Service Account..."
+          # Import Service Account
           terraform state list | grep -q google_service_account.github_actions || \
           (gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null && \
           terraform import google_service_account.github_actions "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com") || \
@@ -92,7 +88,6 @@ jobs:
       - name: Terraform Apply
         if: env.IMPORT_FAILED == '0' && github.ref == 'refs/heads/main'
         run: |
-          echo "All imports successful. Applying Terraform changes..."
           terraform -chdir=infra apply -auto-approve \
             -var="project_id=${PROJECT_ID}" \
             -var="region=${REGION}" \
@@ -100,7 +95,7 @@ jobs:
             -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
             -var="image_url=${{ secrets.IMAGE_URL }}"
 
-      - name: Skipping Terraform Apply
+      - name: Skip Apply Due to Import Failure
         if: env.IMPORT_FAILED != '0'
         run: |
-          echo "Skipping terraform apply due to import failure."
+          echo "Skipping terraform apply because one or more resources failed to import."
