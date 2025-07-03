@@ -14,11 +14,6 @@ jobs:
       run:
         shell: bash
 
-    env:
-      PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      REGION: ${{ secrets.REGION }}
-      BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,71 +31,84 @@ jobs:
       - name: Terraform Init
         run: terraform -chdir=infra init
 
-      - name: Attempt Import of Existing Resources
+      - name: Terraform Plan
+        run: |
+          terraform -chdir=infra plan \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
+            -var="youtube_oauth_json=DUMMYSTRING" \
+            -var="image_url=${{ secrets.IMAGE_URL }}"
+
+      - name: Import existing resources
         id: import
         run: |
           set -e
           cd infra
+          PROJECT_ID="${{ secrets.PROJECT_ID }}"
+          REGION="${{ secrets.REGION }}"
+          BUCKET="${{ secrets.BUCKET_NAME }}"
 
-          failed_import=0
+          IMPORT_ERRORS=0
 
-          import_resource() {
-            name="$1"
-            test_cmd="$2"
-            import_cmd="$3"
-
-            if ! terraform state list | grep -q "$name"; then
-              if eval "$test_cmd"; then
-                echo "Importing $name..."
-                if ! eval "$import_cmd"; then
-                  echo "::warning::Failed to import $name"
-                  failed_import=1
-                fi
+          # Helper to try import and catch error
+          try_import() {
+            if ! terraform state list | grep -q "$1"; then
+              echo "Importing $1..."
+              if eval "$2"; then
+                echo "✅ Imported $1"
               else
-                echo "$name not found remotely. Skipping import."
+                echo "❌ Failed to import $1"
+                IMPORT_ERRORS=1
               fi
-            else
-              echo "$name already in state."
             fi
           }
 
-          import_resource "module.cloud_run.google_cloud_run_v2_service.service" \
-            "gcloud run services describe image-processor --region=$REGION --project=$PROJECT_ID &>/dev/null" \
-            "terraform import module.cloud_run.google_cloud_run_v2_service.service projects/$PROJECT_ID/locations/$REGION/services/image-processor"
+          # Cloud Run
+          try_import "module.cloud_run.google_cloud_run_v2_service.service" \
+            "gcloud run services describe image-processor --region=$REGION --project=$PROJECT_ID &>/dev/null && \
+             terraform import module.cloud_run.google_cloud_run_v2_service.service projects/$PROJECT_ID/locations/$REGION/services/image-processor"
 
-          import_resource "module.scheduler.google_cloud_scheduler_job.job" \
-            "gcloud scheduler jobs describe fetch-and-process-images --location=$REGION --project=$PROJECT_ID &>/dev/null" \
-            "terraform import module.scheduler.google_cloud_scheduler_job.job projects/$PROJECT_ID/locations/$REGION/jobs/fetch-and-process-images"
+          # Cloud Scheduler
+          try_import "module.scheduler.google_cloud_scheduler_job.job" \
+            "gcloud scheduler jobs describe fetch-and-process-images --location=$REGION --project=$PROJECT_ID &>/dev/null && \
+             terraform import module.scheduler.google_cloud_scheduler_job.job projects/$PROJECT_ID/locations/$REGION/jobs/fetch-and-process-images"
 
-          import_resource "module.gcs.google_storage_bucket.media" \
-            "gsutil ls -p $PROJECT_ID gs://$BUCKET_NAME &>/dev/null" \
-            "terraform import module.gcs.google_storage_bucket.media $BUCKET_NAME"
+          # GCS Bucket
+          try_import "module.gcs.google_storage_bucket.media" \
+            "gsutil ls -p $PROJECT_ID gs://$BUCKET &>/dev/null && \
+             terraform import module.gcs.google_storage_bucket.media $BUCKET"
 
-          import_resource "module.secret.google_secret_manager_secret.oauth" \
-            "gcloud secrets describe youtube_oauth --project=$PROJECT_ID &>/dev/null" \
-            "terraform import module.secret.google_secret_manager_secret.oauth projects/$PROJECT_ID/secrets/youtube_oauth"
+          # Secret Manager
+          try_import "module.secret.google_secret_manager_secret.oauth" \
+            "gcloud secrets describe youtube_oauth --project=$PROJECT_ID &>/dev/null && \
+             terraform import module.secret.google_secret_manager_secret.oauth projects/$PROJECT_ID/secrets/youtube_oauth"
 
-          import_resource "google_service_account.github_actions" \
-            "gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project=$PROJECT_ID &>/dev/null" \
-            "terraform import google_service_account.github_actions projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com"
+          # Service Account
+          try_import "google_service_account.github_actions" \
+            "gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project=$PROJECT_ID &>/dev/null && \
+             terraform import google_service_account.github_actions projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com"
 
-          echo "IMPORT_FAILED=$failed_import" >> "$GITHUB_ENV"
+          # Service Account Key
+          try_import "google_service_account_key.github_key" \
+            "KEY_ID=$(gcloud iam service-accounts keys list \
+              --iam-account=github-actions@$PROJECT_ID.iam.gserviceaccount.com \
+              --project=$PROJECT_ID --format='value(name)' | head -n1 | cut -d'/' -f4) && \
+             [ -n \"$KEY_ID\" ] && \
+             terraform import google_service_account_key.github_key projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com/keys/$KEY_ID"
 
-      - name: Terraform Plan
-        run: |
-          terraform -chdir=infra plan \
-            -var="project_id=$PROJECT_ID" \
-            -var="region=$REGION" \
-            -var="bucket_name=$BUCKET_NAME" \
-            -var="youtube_oauth_json=DUMMY" \
-            -var="image_url=${{ secrets.IMAGE_URL }}"
+          echo "IMPORT_ERRORS=$IMPORT_ERRORS" >> "$GITHUB_ENV"
 
       - name: Terraform Apply
-        if: env.IMPORT_FAILED == '0'
+        if: env.IMPORT_ERRORS == '0'
         run: |
           terraform -chdir=infra apply -auto-approve \
-            -var="project_id=$PROJECT_ID" \
-            -var="region=$REGION" \
-            -var="bucket_name=$BUCKET_NAME" \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
             -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
             -var="image_url=${{ secrets.IMAGE_URL }}"
+
+      - name: Skip Apply due to import errors
+        if: env.IMPORT_ERRORS != '0'
+        run: echo "Skipping apply due to import errors."
