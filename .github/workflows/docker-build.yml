@@ -3,7 +3,7 @@ name: Build and Deploy Docker Image
 on:
   push:
     paths:
-      - 'image-processor/**'
+      - 'image-processor/*'
     branches:
       - main
 
@@ -26,7 +26,7 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: Configure Docker for Artifact Registry
+      - name: Configure Docker for Artifact Registry.
         run: gcloud auth configure-docker ${{ secrets.REGION }}-docker.pkg.dev
 
       - name: Build and Push Docker image
