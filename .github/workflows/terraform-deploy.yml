@@ -35,6 +35,7 @@ jobs:
             -var="region=${{ secrets.REGION }}" \
             -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
             -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
+            -var="image_url=${{ secrets.IMAGE_URL }}"
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
@@ -44,3 +45,4 @@ jobs:
             -var="region=${{ secrets.REGION }}" \
             -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
             -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
+            -var="image_url=${{ secrets.IMAGE_URL }}"
