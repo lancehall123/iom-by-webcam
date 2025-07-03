@@ -29,8 +29,18 @@ jobs:
         run: terraform -chdir=infra init
 
       - name: Terraform Plan
-        run: terraform -chdir=infra plan -var-file="terraform.tfvars"
+        run: |
+          terraform -chdir=infra plan \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
+            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
-        run: terraform -chdir=infra apply -auto-approve -var-file="terraform.tfvars"
+        run: |
+          terraform -chdir=infra apply -auto-approve \
+            -var="project_id=${{ secrets.PROJECT_ID }}" \
+            -var="region=${{ secrets.REGION }}" \
+            -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
+            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
