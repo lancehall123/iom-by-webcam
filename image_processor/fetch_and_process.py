@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Config
+
 IMAGE_URL = os.environ.get("IMAGE_URL")
 BASE_DIR = Path("/data/images")
 
