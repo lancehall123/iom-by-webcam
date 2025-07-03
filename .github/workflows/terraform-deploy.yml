@@ -34,7 +34,7 @@ jobs:
             -var="project_id=${{ secrets.PROJECT_ID }}" \
             -var="region=${{ secrets.REGION }}" \
             -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
-            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
+            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
             -var="image_url=${{ secrets.IMAGE_URL }}"
 
       - name: Terraform Apply
@@ -44,5 +44,5 @@ jobs:
             -var="project_id=${{ secrets.PROJECT_ID }}" \
             -var="region=${{ secrets.REGION }}" \
             -var="bucket_name=${{ secrets.BUCKET_NAME }}" \
-            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}"
+            -var="youtube_oauth_json=${{ secrets.YOUTUBE_OAUTH_JSON }}" \
             -var="image_url=${{ secrets.IMAGE_URL }}"
