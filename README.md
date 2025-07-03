@@ -1,37 +1,57 @@
 # iom-by-webcam
 
-# WIP
+This project powers the [Isle of Man by Webcam](https://www.youtube.com/@IsleOfManByWebcam/videos) YouTube channel. It automates the capture of webcam images, stores them in Google Cloud Storage, and is being expanded to generate and upload videos to YouTube.
 
-This project powers the [Isle of Man by Webcam](https://www.youtube.com/@IsleOfManByWebcam/videos) YouTube channel. It automates image capture from a public webcam, processes the images into timestamped collections, and can optionally upload or assemble them into videos.
-
-It is the result of migrating from a previously physical, on-premises setup to a modern, cloud-based, fully automated infrastructure.
+This repository represents a migration from an on-premises, manually managed setup to a modern, cloud-native architecture using Google Cloud Platform and GitHub Actions.
 
 ---
-## Current On-Prem Tech Stack
+
+## Problem Statement
+
+The original on-premises system relied on:
+
+- A physical Windows server
+- PowerShell scripts triggered by Task Scheduler
+- External hard drives for storage
+
+### Limitations:
+- **No remote access or observability**
+- **Manual maintenance of scripts and storage**
+- **Limited fault tolerance or scalability**
+- **No CI/CD or source control integration**
+
+To address these limitations, the system is being migrated to a cloud-based architecture that is fully automated, reproducible via infrastructure-as-code, and easy to maintain or extend.
+
+---
+
+## On-Prem Stack (Legacy)
+
+| Component                 | Description                                          |
+|---------------------------|------------------------------------------------------|
+| PowerShell                | Automated webcam image capture                       |
+| Windows Task Scheduler    | Scheduled image downloads                           |
+| Windows Server            | Hosted the PowerShell scripts                        |
+| External Hard Drive       | Local image storage                                  |
+| Manual File Management    | No remote backup, aging scripts, and no CI/CD        |
+
+---
+
+## New Cloud-Based Stack
+
 | Component            | Description                                                       |
 |----------------------|-------------------------------------------------------------------|
-| **Powershell**                | Image processing and download automation.                |
-| **Windows Task Scheduler**    | Used to schedule the above powershell script to run.     |
-| **Windows Server**            | Windows server operating system with Task Scheduler.     |
-| **On Prem Hardware**          | Local infrastructure.                                    |
-| **On Prem Hard Drive**        | Local External Hard Drive.                               |
+| Python               | Image fetching and processing (`fetch_and_process.py`)            |
+| Docker               | Containerized image processor                                     |
+| Terraform            | Infrastructure as Code for provisioning on GCP                   |
+| Cloud Run            | Executes the processor container on demand                       |
+| Cloud Scheduler      | Triggers image capture every minute                              |
+| Cloud Storage        | Stores images in daily timestamped folders                       |
+| GitHub Actions       | Automates Docker build + Terraform deployments                   |
 
 ---
 
-## New Tech Stack
+## Architecture Diagram
 
-| Component            | Description                                                       |
-|----------------------|-------------------------------------------------------------------|
-| **Python**           | Image processing and download automation (`fetch_and_process.py`). |
-| **Docker**           | Containerized the processor to run anywhere.                       |
-| **Terraform**        | Infrastructure as Code (GCP provisioning).                         |
-| **Cloud Run**        | Serverless hosting of the image processor.                         |
-| **Cloud Scheduler**  | Triggers the image processor on a fixed schedule.                  |
-| **Cloud Storage**    | Stores downloaded webcam images securely.                          |
-| **GitHub Actions**   | CI/CD pipeline for Docker image and infrastructure deployment.     |
-
----
-Diagram created by mermaid (Diagrams via code).
 ```mermaid
 flowchart TD
     scheduler["Cloud Scheduler (runs every minute)"]
@@ -39,6 +59,7 @@ flowchart TD
     storage["Google Cloud Storage (images stored in date folders)"]
 
     scheduler --> run --> storage
+
 ```
 ---
 
