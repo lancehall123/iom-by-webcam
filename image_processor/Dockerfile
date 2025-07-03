@@ -1,8 +1,7 @@
 FROM python:3.11-slim
 WORKDIR /app
 COPY fetch_and_process.py .
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN mkdir -p /data/images
-ENV IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg"
-CMD ["python", "fetch_and_process.py"]
+RUN pip install flask requests gunicorn
+ENV PORT=8080
+EXPOSE 8080
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "fetch_and_process:app"]

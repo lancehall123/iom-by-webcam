@@ -6,3 +6,4 @@
 crash.log
 
 infra/terraform.tfvars
+image_processor/output/
