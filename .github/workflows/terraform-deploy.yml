@@ -46,30 +46,42 @@ jobs:
 
           terraform init -input=false
 
-          # Import Cloud Run Service
-          terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service || \
-          (gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null && \
-          terraform import module.cloud_run.google_cloud_run_v2_service.service "projects/$PROJECT_ID/locations/$REGION/services/image-processor")
+          echo "🔁 Attempting to import existing resources..."
 
-          # Import Cloud Scheduler Job
-          terraform state list | grep -q module.scheduler.google_cloud_scheduler_job.job || \
-          (gcloud scheduler jobs describe fetch-and-process-images --location="$REGION" --project="$PROJECT_ID" &>/dev/null && \
-          terraform import module.scheduler.google_cloud_scheduler_job.job "projects/$PROJECT_ID/locations/$REGION/jobs/fetch-and-process-images")
+          # Cloud Run
+          if ! terraform state list | grep -q module.cloud_run.google_cloud_run_v2_service.service; then
+            if gcloud run services describe image-processor --region="$REGION" --project="$PROJECT_ID" &>/dev/null; then
+              terraform import module.cloud_run.google_cloud_run_v2_service.service "projects/$PROJECT_ID/locations/$REGION/services/image-processor" || echo "⚠️ Failed to import Cloud Run"
+            fi
+          fi
 
-          # Import GCS Bucket
-          terraform state list | grep -q module.gcs.google_storage_bucket.media || \
-          (gsutil ls -p "$PROJECT_ID" gs://$BUCKET &>/dev/null && \
-          terraform import module.gcs.google_storage_bucket.media "$BUCKET")
+          # Cloud Scheduler
+          if ! terraform state list | grep -q module.scheduler.google_cloud_scheduler_job.job; then
+            if gcloud scheduler jobs describe fetch-and-process-images --location="$REGION" --project="$PROJECT_ID" &>/dev/null; then
+              terraform import module.scheduler.google_cloud_scheduler_job.job "projects/$PROJECT_ID/locations/$REGION/jobs/fetch-and-process-images" || echo "⚠️ Failed to import Scheduler"
+            fi
+          fi
 
-          # Import Secret Manager Secret
-          terraform state list | grep -q module.secret.google_secret_manager_secret.oauth || \
-          (gcloud secrets describe youtube_oauth --project="$PROJECT_ID" &>/dev/null && \
-          terraform import module.secret.google_secret_manager_secret.oauth "projects/$PROJECT_ID/secrets/youtube_oauth")
+          # GCS Bucket
+          if ! terraform state list | grep -q module.gcs.google_storage_bucket.media; then
+            if gsutil ls -p "$PROJECT_ID" gs://$BUCKET &>/dev/null; then
+              terraform import module.gcs.google_storage_bucket.media "$BUCKET" || echo "⚠️ Failed to import GCS Bucket"
+            fi
+          fi
 
-          # Import Service Account
-          terraform state list | grep -q google_service_account.github_actions || \
-          (gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null && \
-          terraform import google_service_account.github_actions "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com")
+          # Secret Manager
+          if ! terraform state list | grep -q module.secret.google_secret_manager_secret.oauth; then
+            if gcloud secrets describe youtube_oauth --project="$PROJECT_ID" &>/dev/null; then
+              terraform import module.secret.google_secret_manager_secret.oauth "projects/$PROJECT_ID/secrets/youtube_oauth" || echo "⚠️ Failed to import Secret"
+            fi
+          fi
+
+          # Service Account
+          if ! terraform state list | grep -q google_service_account.github_actions; then
+            if gcloud iam service-accounts describe github-actions@$PROJECT_ID.iam.gserviceaccount.com --project="$PROJECT_ID" &>/dev/null; then
+              terraform import google_service_account.github_actions "projects/$PROJECT_ID/serviceAccounts/github-actions@$PROJECT_ID.iam.gserviceaccount.com" || echo "⚠️ Failed to import Service Account"
+            fi
+          fi
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
