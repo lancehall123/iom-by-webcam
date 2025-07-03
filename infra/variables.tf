@@ -21,4 +21,5 @@ variable "youtube_oauth_json" {
 variable "image_url" {
   type        = string
   description = "The URL of the webcam image to fetch"
+  default = "europe-west1-docker.pkg.dev/isleofmanbywebcam/webcam-repo/image_processor"
 }
