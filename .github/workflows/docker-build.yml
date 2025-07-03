@@ -31,6 +31,6 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/webcam-repo/image-processor"
-          docker build -t $IMAGE ./image-processor
+          IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/webcam-repo/image_processor"
+          docker build -t $IMAGE ./image_processor
           docker push $IMAGE

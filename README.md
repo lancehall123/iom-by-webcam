@@ -74,7 +74,7 @@ cd iom-by-webcam
 ### 2. Develop Locally
 
 ```bash
-cd image-processor
+cd image_processor
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -85,8 +85,8 @@ Set the IMAGE_URL environment variable in .env or your shell.
 ### 3. Build and Test Docker
 
 ```bash
-docker build -t image-processor .
-docker run --rm -e IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg" -v "$(pwd)/output:/data/images" image-processor
+docker build -t image_processor .
+docker run --rm -e IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg" -v "$(pwd)/output:/data/images" image_processor
 
 ```
 ### 4. Deploy to GCP with Terraform
@@ -102,7 +102,7 @@ Use terraform.tfvars.example to create your own terraform.tfvars.
 ### CI/CD
 
 #### Image Processor Workflow:
-1. Push to `image-processor/` directory
+1. Push to `image_processor/` directory
 2. GitHub Actions workflow runs:
    - Builds the Docker image
    - Pushes it to **Google Artifact Registry**
