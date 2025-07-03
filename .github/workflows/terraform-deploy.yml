@@ -63,11 +63,6 @@ jobs:
           (gsutil ls -p "$PROJECT_ID" gs://$BUCKET &>/dev/null && \
           terraform import module.gcs.google_storage_bucket.media "$BUCKET") || IMPORT_FAILED=1
 
-          echo "Importing module.secret.google_secret_manager_secret.oauth..."
-          terraform state list | grep -q module.secret.google_secret_manager_secret.oauth || \
-          (gcloud secrets describe youtube_oauth --project="$PROJECT_ID" &>/dev/null && \
-          terraform import module.secret.google_secret_manager_secret.oauth "projects/$PROJECT_ID/secrets/youtube_oauth") || IMPORT_FAILED=1
-
           echo "Finished importing. IMPORT_FAILED=$IMPORT_FAILED"
           echo "IMPORT_FAILED=$IMPORT_FAILED" >> $GITHUB_ENV
 
