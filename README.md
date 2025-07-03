@@ -72,6 +72,7 @@ git clone https://github.com/your-username/iom-by-webcam.git
 cd iom-by-webcam
 ```
 ### 2. Develop Locally
+
 ```bash
 cd image-processor
 python3 -m venv venv
@@ -82,12 +83,14 @@ python fetch_and_process.py
 Set the IMAGE_URL environment variable in .env or your shell.
 
 ### 3. Build and Test Docker
+
 ```bash
 docker build -t image-processor .
 docker run --rm -e IMAGE_URL="https://images.gov.im/webcams/bungalow1.jpg" -v "$(pwd)/output:/data/images" image-processor
 
 ```
 ### 4. Deploy to GCP with Terraform
+
 ```bash
 cd infra
 terraform init
@@ -134,4 +137,6 @@ GCP_SA_KEY → your GCP service account credentials JSON
 
 Work still to be done
 
-Schedule the video creation and upload to youtube.
+- [] Commit the Actions config.
+- [] Schedule the video creation and upload to youtube.
+
