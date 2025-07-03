@@ -13,6 +13,11 @@ variable "bucket_name" {
   default = "iombywebcambucket"
 }
 
+variable "youtube_oauth_json" {
+  type = string
+  description = "Contents of YouTube OAuth JSON credentials"
+}
+
 variable "image_url" {
   type        = string
   description = "The URL of the webcam image to fetch"
