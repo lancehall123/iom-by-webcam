@@ -1,11 +1,11 @@
-# resource "google_storage_bucket" "media" {
-#   name     = var.bucket_name
-#   location = var.region
+resource "google_storage_bucket" "media" {
+  name     = var.bucket_name
+  location = var.region
 
-#   force_destroy = false
+  force_destroy = false
 
-#   lifecycle {
-#     prevent_destroy = true
-#     ignore_changes  = [labels]
-#   }
-# }
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [labels]
+  }
+}
