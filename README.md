@@ -10,9 +10,9 @@ This repository represents a migration from an on-premises, manually managed set
 
 The original on-premises system relied on:
 
-- A physical Windows server
-- PowerShell scripts triggered by Task Scheduler
-- External hard drives for storage
+- A physical Windows server.
+- PowerShell scripts triggered by Task Scheduler.
+- External hard drives for storage.
 
 ### Limitations:
 - **No remote access or observability**
