@@ -7,3 +7,4 @@ crash.log
 
 infra/terraform.tfvars
 image_processor/output/
+infra/terraform.tfstate.1751556586.backup
