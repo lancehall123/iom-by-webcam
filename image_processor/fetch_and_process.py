@@ -3,14 +3,16 @@ import time
 import threading
 from datetime import datetime
 from pathlib import Path
+
 import requests
 from flask import Flask, render_template_string
 from google.cloud import storage
+from google.api_core.exceptions import GoogleAPIError
 
-# Environment variables
+# Configuration from environment
 IMAGE_URL = os.environ.get("IMAGE_URL", "https://images.gov.im/webcams/bungalow1.jpg")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
-REFRESH_INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
+INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "60"))
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -18,64 +20,76 @@ HEADERS = {
     "Accept": "image/jpeg,image/png,image/*;q=0.8"
 }
 
-# Google Cloud Storage client
-storage_client = storage.Client()
-bucket = storage_client.bucket(BUCKET_NAME)
-
 # Flask app
 app = Flask(__name__)
 
+# GCS client
+storage_client = storage.Client()
+bucket = storage_client.bucket(BUCKET_NAME)
+
 def upload_image_to_gcs(image_data):
-    date_prefix = datetime.utcnow().strftime("%Y%m%d")
-    blobs = list(bucket.list_blobs(prefix=f"{date_prefix}/"))
+    """Uploads image data to GCS in sequential format under today's folder."""
+    today_prefix = datetime.utcnow().strftime("%Y%m%d")
 
-    max_index = 0
-    for blob in blobs:
-        name = Path(blob.name).name
-        if name.endswith(".jpg") and name[:-4].isdigit():
-            try:
-                index = int(name[:-4])
-                max_index = max(max_index, index)
-            except ValueError:
-                continue
+    try:
+        # Get current index
+        blobs = list(bucket.list_blobs(prefix=f"{today_prefix}/"))
+        max_index = 0
+        for blob in blobs:
+            filename = Path(blob.name).name
+            if filename.endswith(".jpg") and filename[:-4].isdigit():
+                max_index = max(max_index, int(filename[:-4]))
 
-    next_index = max_index + 1
-    filename = f"{next_index:04d}.jpg"
-    blob_path = f"{date_prefix}/{filename}"
+        next_index = max_index + 1
+        new_filename = f"{today_prefix}/{next_index:04d}.jpg"
 
-    blob = bucket.blob(blob_path)
-    blob.upload_from_string(image_data, content_type='image/jpeg')
-    blob.make_public()
+        blob = bucket.blob(new_filename)
+        blob.upload_from_string(image_data, content_type="image/jpeg")
+        blob.make_public()
 
-    print(f"Uploaded {filename} to GCS → {blob.public_url}")
+        print(f"Uploaded image as {new_filename}")
+    except GoogleAPIError as e:
+        print(f"GCS upload error: {e}")
+    except Exception as e:
+        print(f"Unexpected upload error: {e}")
 
-def fetch_and_upload():
+def fetch_and_upload_loop():
+    """Fetches an image every N seconds and uploads to GCS."""
     while True:
         try:
-            response = requests.get(IMAGE_URL, headers=HEADERS)
-            response.raise_for_status()
+            print("Fetching image...")
+            resp = requests.get(IMAGE_URL, headers=HEADERS)
+            resp.raise_for_status()
 
-            if response.content:
-                upload_image_to_gcs(response.content)
+            if resp.content:
+                upload_image_to_gcs(resp.content)
             else:
-                print("Empty image data received.")
-        except Exception as e:
-            print(f"Error downloading or uploading image: {e}")
+                print("Empty image received.")
 
-        time.sleep(REFRESH_INTERVAL)
+        except Exception as e:
+            print(f"Download or upload failed: {e}")
+
+        time.sleep(INTERVAL_SECONDS)
 
 @app.route("/")
 def index():
-    date_prefix = datetime.utcnow().strftime('%Y%m%d')
-    blobs = bucket.list_blobs(prefix=f"{date_prefix}/")
-    sorted_blobs = sorted(blobs, key=lambda b: b.updated, reverse=True)[:5]
+    """Displays the 5 most recent images from GCS."""
+    try:
+        prefix = datetime.utcnow().strftime("%Y%m%d")
+        blobs = list(bucket.list_blobs(prefix=f"{prefix}/"))
 
-    image_urls = [
-        f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
-        for blob in sorted_blobs
-    ]
-    img_tags = "\n".join([f"<img src='{url}' width='320' />" for url in image_urls])
-    return render_template_string(f"<html><body><h1>Latest Images</h1>{img_tags}</body></html>")
+        if not blobs:
+            return "No images found."
 
-# Start background thread
-threading.Thread(target=fetch_and_upload, daemon=True).start()
+        sorted_blobs = sorted(blobs, key=lambda b: b.updated, reverse=True)[:5]
+        image_urls = [f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}" for blob in sorted_blobs]
+
+        image_html = "\n".join([f"<img src='{url}' width='320'>" for url in image_urls])
+        return render_template_string(f"<html><body><h1>Latest Images</h1>{image_html}</body></html>")
+
+    except Exception as e:
+        print(f"Error in index route: {e}")
+        return f"Internal Server Error: {e}", 500
+
+# Start download loop in background thread
+threading.Thread(target=fetch_and_upload_loop, daemon=True).start()
