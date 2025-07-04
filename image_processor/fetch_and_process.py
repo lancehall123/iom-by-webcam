@@ -27,6 +27,7 @@ app = Flask(__name__)
 def upload_image_to_gcs(image_data, filename):
     blob = bucket.blob(f"{datetime.utcnow().strftime('%Y%m%d')}/{filename}")
     blob.upload_from_string(image_data, content_type='image/jpeg')
+    blob.make_public()
     print(f"Uploaded {filename} to GCS bucket {BUCKET_NAME}")
 
 def fetch_and_upload():
