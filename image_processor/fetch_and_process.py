@@ -24,11 +24,28 @@ bucket = storage_client.bucket(BUCKET_NAME)
 # Flask app
 app = Flask(__name__)
 
-def upload_image_to_gcs(image_data, filename):
-    blob = bucket.blob(f"{datetime.utcnow().strftime('%Y%m%d')}/{filename}")
+def upload_image_to_gcs(image_data):
+    from google.api_core.exceptions import NotFound
+
+    date_prefix = datetime.utcnow().strftime("%Y%m%d")
+    blobs = list(bucket.list_blobs(prefix=f"{date_prefix}/"))
+    
+    # Find the highest existing index
+    max_index = 0
+    for blob in blobs:
+        name = Path(blob.name).name
+        if name.endswith(".jpg") and name[:-4].isdigit():
+            max_index = max(max_index, int(name[:-4]))
+    
+    # Determine next filename
+    next_index = max_index + 1
+    filename = f"{next_index:04d}.jpg"
+    blob = bucket.blob(f"{date_prefix}/{filename}")
     blob.upload_from_string(image_data, content_type='image/jpeg')
     blob.make_public()
-    print(f"Uploaded {filename} to GCS bucket {BUCKET_NAME}")
+
+    print(f"Uploaded {filename} to GCS and made it public at {blob.public_url}")
+
 
 def fetch_and_upload():
     while True:
