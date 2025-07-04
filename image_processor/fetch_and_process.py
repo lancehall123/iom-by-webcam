@@ -106,5 +106,5 @@ def index():
     return render_template_string(f"<html><body><h1>Latest Camera Images</h1>{img_tags}</body></html>")
 
 
-# Start background thread
+
 threading.Thread(target=loop_fetch_all_cameras, daemon=True).start()
