@@ -1,26 +1,26 @@
 import os
-import time
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 import requests
 from flask import Flask, render_template_string
 from google.cloud import storage
 
-# Camera definitions
-CAMERA_CONFIGS = [
+# Environment Variables
+CAMERA_CONFIG = [
     {"name": "bungalow1", "url": "https://images.gov.im/webcams/bungalow1.jpg"},
     {"name": "bungalow2", "url": "https://images.gov.im/webcams/bungalow2.jpg"},
     {"name": "bungalow3", "url": "https://images.gov.im/webcams/bungalow3.jpg"},
-    {"name": "ed_tower", "url": "https://images.gov.im/webcams/ed_tower.jpg"},
-    {"name": "DTL", "url": "https://images.gov.im/webcams/DTL_00001.jpg"},
+    {"name": "ed_tower",  "url": "https://images.gov.im/webcams/ed_tower.jpg"},
+    {"name": "douglasprom", "url": "https://images.gov.im/webcams/DTL_00001.jpg"},
     {"name": "peel", "url": "https://images.gov.im/webcams/peel_00001.jpg"},
-    {"name": "PortErin", "url": "https://images.gov.im/webcams/PortErin.jpg"},
-    {"name": "Castletown", "url": "https://images.gov.im/webcams/Castletown_Bay.jpg"},
-    {"name": "Ramsey", "url": "https://images.gov.im/webcams/Ramsey_00001.jpg"},
+    {"name": "porterin", "url": "https://images.gov.im/webcams/PortErin.jpg"},
+    {"name": "castletown", "url": "https://images.gov.im/webcams/Castletown_Bay.jpg"},
+    {"name": "ramsey", "url": "https://images.gov.im/webcams/Ramsey_00001.jpg"},
+    # Add or remove as needed
 ]
 
-# Config from environment
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 REFRESH_INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
 
@@ -30,52 +30,81 @@ HEADERS = {
     "Accept": "image/jpeg,image/png,image/*;q=0.8"
 }
 
-# GCS client
 storage_client = storage.Client()
 bucket = storage_client.bucket(BUCKET_NAME)
 
 app = Flask(__name__)
 
-def upload_image_to_gcs(camera, image_data):
-    today = datetime.utcnow().strftime("%Y%m%d")
-    prefix = f"{camera}/{today}/"
-    blobs = list(bucket.list_blobs(prefix=prefix))
-    max_index = max([int(Path(b.name).stem) for b in blobs if Path(b.name).stem.isdigit()] or [-1]) + 1
-    filename = f"{prefix}{max_index:04d}.jpg"
-    blob = bucket.blob(filename)
-    blob.upload_from_string(image_data, content_type="image/jpeg")
-    blob.make_public()
-    print(f"[{camera}] Uploaded: {filename} -> {blob.public_url}")
 
-def fetch_and_upload(camera, url):
+def is_valid_jpeg(content: bytes) -> bool:
+    return content.startswith(b'\xff\xd8') and content.endswith(b'\xff\xd9')
+
+
+def download_image_with_validation(url: str) -> bytes | None:
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
         response.raise_for_status()
-        if response.content:
-            upload_image_to_gcs(camera, response.content)
-        else:
-            print(f"[{camera}] Empty content")
+        content = response.content
+        if not content or not is_valid_jpeg(content):
+            print(f"Invalid or empty image from {url}, skipping.")
+            return None
+        return content
     except Exception as e:
-        print(f"[{camera}] ERROR: {e}")
+        print(f"Error fetching {url}: {e}")
+        return None
 
-def background_loop():
+
+def upload_image_to_gcs(image_data: bytes, camera: str):
+    date_prefix = datetime.utcnow().strftime("%Y%m%d")
+    prefix = f"{camera}/{date_prefix}/"
+    blobs = list(bucket.list_blobs(prefix=prefix))
+
+    # Find the next sequential index
+    max_index = 0
+    for blob in blobs:
+        filename = Path(blob.name).name
+        if filename.endswith(".jpg") and filename[:-4].isdigit():
+            max_index = max(max_index, int(filename[:-4]))
+
+    next_index = max_index + 1
+    filename = f"{next_index:04d}.jpg"
+    blob = bucket.blob(f"{prefix}{filename}")
+    blob.upload_from_string(image_data, content_type="image/jpeg")
+    blob.make_public()
+
+    print(f"Uploaded {prefix}{filename} to GCS")
+
+
+def process_camera(camera: dict):
+    image_data = download_image_with_validation(camera["url"])
+    if image_data:
+        upload_image_to_gcs(image_data, camera["name"])
+
+
+def loop_fetch_all_cameras():
     while True:
-        for cam in CAMERA_CONFIGS:
-            threading.Thread(target=fetch_and_upload, args=(cam["name"], cam["url"]), daemon=True).start()
+        threads = []
+        for cam in CAMERA_CONFIG:
+            t = threading.Thread(target=process_camera, args=(cam,))
+            t.start()
+            threads.append(t)
+        for t in threads:
+            t.join()
         time.sleep(REFRESH_INTERVAL)
+
 
 @app.route("/")
 def index():
-    today = datetime.utcnow().strftime("%Y%m%d")
-    html = "<html><body><h1>Latest Images</h1>"
-    for cam in CAMERA_CONFIGS:
-        blobs = list(bucket.list_blobs(prefix=f"{cam['name']}/{today}/"))
-        latest = sorted(blobs, key=lambda b: b.updated, reverse=True)[:1]
-        for blob in latest:
+    date_prefix = datetime.utcnow().strftime("%Y%m%d")
+    img_tags = ""
+    for cam in CAMERA_CONFIG:
+        blobs = list(bucket.list_blobs(prefix=f"{cam['name']}/{date_prefix}/"))
+        blobs = sorted(blobs, key=lambda b: b.updated, reverse=True)[:1]
+        for blob in blobs:
             url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob.name}"
-            html += f"<h3>{cam['name']}</h3><img src='{url}' width='320' /><br/>"
-    html += "</body></html>"
-    return render_template_string(html)
+            img_tags += f"<h3>{cam['name']}</h3><img src='{url}' width='320' /><br/>"
+    return render_template_string(f"<html><body><h1>Latest Camera Images</h1>{img_tags}</body></html>")
 
-# Start background image capture
-threading.Thread(target=background_loop, daemon=True).start()
+
+# Start background thread
+threading.Thread(target=loop_fetch_all_cameras, daemon=True).start()
