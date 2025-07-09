@@ -28,11 +28,11 @@ To address these limitations, the system is being migrated to a cloud-based arch
 
 | Component                 | Description                                          |
 |---------------------------|------------------------------------------------------|
-| PowerShell                | Automated webcam image capture                       |
-| Windows Task Scheduler    | Scheduled image downloads                           |
-| Windows Server            | Hosted the PowerShell scripts                        |
-| External Hard Drive       | Local image storage                                  |
-| Manual File Management    | No remote backup, aging scripts, and no CI/CD        |
+| PowerShell                | Automated webcam image capture.                      |
+| Windows Task Scheduler    | Scheduled image downloads.                           |
+| Windows Server            | Hosted the PowerShell scripts.                       |
+| External Hard Drive       | Local image storage.                                 |
+| Manual File Management    | No remote backup, aging scripts, and no CI/CD.       |
 
 ---
 
@@ -40,13 +40,13 @@ To address these limitations, the system is being migrated to a cloud-based arch
 
 | Component            | Description                                                       |
 |----------------------|-------------------------------------------------------------------|
-| Python               | Image fetching and processing (`fetch_and_process.py`)            |
-| Docker               | Containerized image processor                                     |
-| Terraform            | Infrastructure as Code for provisioning on GCP                   |
-| Cloud Run            | Executes the processor container on demand                       |
-| Cloud Scheduler      | Triggers image capture every minute                              |
-| Cloud Storage        | Stores images in daily timestamped folders                       |
-| GitHub Actions       | Automates Docker build + Terraform deployments                   |
+| Python               | Image fetching and processing (`fetch_and_process.py`).           |
+| Docker               | Containerized image processor.                                    |
+| Terraform            | Infrastructure as Code for provisioning on GCP.                   |
+| Cloud Run            | Executes the processor container on demand.                       |
+| Cloud Scheduler      | Triggers image capture every minute.                              |
+| Cloud Storage        | Stores images in daily timestamped folders.                       |
+| GitHub Actions       | Automates Docker build + Terraform deployments.                   |
 
 ---
 
@@ -102,17 +102,17 @@ Use terraform.tfvars.example to create your own terraform.tfvars.
 ### CI/CD
 
 #### Image Processor Workflow:
-1. Push to `image_processor/` directory
+1. Push to `image_processor/` directory.
 2. GitHub Actions workflow runs:
-   - Builds the Docker image
-   - Pushes it to **Google Artifact Registry**
-   - Triggers Cloud Run update with the new image
+   - Builds the Docker image.
+   - Pushes it to **Google Artifact Registry**.
+   - Triggers Cloud Run update with the new image.
 
 #### Infrastructure Workflow:
 1. Push to `infra/` directory
 2. GitHub Actions workflow runs:
-   - Runs `terraform plan` to preview changes
-   - Optionally runs `terraform apply` to apply changes
+   - Runs `terraform plan` to preview changes.
+   - Optionally runs `terraform apply` to apply changes.
    - Manages:
      - Cloud Run service
      - Cloud Scheduler

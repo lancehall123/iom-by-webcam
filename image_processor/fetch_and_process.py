@@ -7,7 +7,7 @@ import requests
 from flask import Flask, render_template_string
 from google.cloud import storage
 
-# Environment Variables
+
 CAMERA_CONFIG = [
     {"name": "bungalow1", "url": "https://images.gov.im/webcams/bungalow1.jpg"},
     {"name": "bungalow2", "url": "https://images.gov.im/webcams/bungalow2.jpg"},
@@ -18,7 +18,6 @@ CAMERA_CONFIG = [
     {"name": "porterin", "url": "https://images.gov.im/webcams/PortErin.jpg"},
     {"name": "castletown", "url": "https://images.gov.im/webcams/Castletown_Bay.jpg"},
     {"name": "ramsey", "url": "https://images.gov.im/webcams/Ramsey_00001.jpg"},
-    # Add or remove as needed
 ]
 
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
